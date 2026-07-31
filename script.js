@@ -55,7 +55,7 @@ function updatePlaylistLabel() {
   }
 }
 
-// ===== حفظ وجلب البيانات (نظام Vivo Player) =====
+// ===== حفظ وجلب البيانات =====
 function saveAndFetchData() {
   const name = document.getElementById('pName').value.trim();
   let url = document.getElementById('pUrl').value.trim();
@@ -129,7 +129,7 @@ function deletePlaylist(i) {
   updatePlaylistLabel();
 }
 
-// ===== جلب البيانات (نظام Vivo Player بالظبط) =====
+// ===== جلب البيانات وإضافة CORS Proxy لحل مشكلة عدم التحميل =====
 function fetchAllData() {
   if(!activePlaylist) {
     alert('مفيش سيرفر نشط، اضغط + عشان تضيف واحد');
@@ -142,43 +142,40 @@ function fetchAllData() {
   const user = activePlaylist.user;
   const pass = activePlaylist.pass;
 
-  // ===== نفس نظام Vivo Player بالظبط =====
   const apiBase = `${baseUrl}/player_api.php?username=${user}&password=${pass}`;
   
-  const endpoints = [
-    `${apiBase}&action=get_live_categories`,
-    `${apiBase}&action=get_live_streams`
-  ];
+  const catUrl = `${apiBase}&action=get_live_categories`;
+  const streamUrl = `${apiBase}&action=get_live_streams`;
 
-  // نجيب البيانات
+  // استخدام بروكسي لتجاوز حظر CORS للمتصفح
+  const proxy = "https://api.allorigins.win/raw?url=";
+
   Promise.all([
-    fetch(endpoints[0]).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    fetch(proxy + encodeURIComponent(catUrl)).then(r => {
+      if (!r.ok) throw new Error(`HTTP Error ${r.status}`);
       return r.json();
     }),
-    fetch(endpoints[1]).then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    fetch(proxy + encodeURIComponent(streamUrl)).then(r => {
+      if (!r.ok) throw new Error(`HTTP Error ${r.status}`);
       return r.json();
     })
   ])
   .then(([categories, streams]) => {
-    // التأكد إن في بيانات
-    if (!categories || categories.length === 0) {
-      throw new Error('مفيش بيانات، تأكد من اليوزر والباسورد');
+    if (!Array.isArray(categories) || categories.length === 0) {
+      throw new Error('لم يتم العثور على أقسام، تأكد من صحة اليوزر والباسورد والاشتراك');
     }
     
     serverData.categories = categories;
-    serverData.streams = streams;
+    serverData.streams = Array.isArray(streams) ? streams : [];
     
     document.getElementById('loadingOverlay').style.display = 'none';
     openPlayerView('live');
     
-    // رسالة نجاح
-    alert(`✅ تم التحميل!\nأقسام: ${categories.length}\nقنوات: ${streams.length}`);
+    alert(`✅ تم جلب السيرفر بنجاح!\nالأقسام: ${categories.length}\nالقنوات: ${serverData.streams.length}`);
   })
   .catch(err => {
     document.getElementById('loadingOverlay').style.display = 'none';
-    alert(`❌ فشل التحميل: ${err.message}\n\n🔧 الحلول:\n1- تأكد السيرفر شغال\n2- تأكد اليوزر والباسورد\n3- غير http لـ https\n4- جرب سيرفر تاني`);
+    alert(`❌ فشل التحميل: ${err.message}\n\nتأكد من:\n1- بيانات الاشتراك (User/Pass)\n2- حالة السيرفر وتاريخ انتهائه`);
   });
 }
 
@@ -197,7 +194,7 @@ function openPlayerView(type) {
 function closePlayerView() {
   document.getElementById('playerView').style.display = 'none';
   const video = document.getElementById('mainVideo');
-  video.pause();
+  if(video) video.pause();
 }
 
 function renderCategories() {
@@ -226,7 +223,7 @@ function renderChannels(catId) {
   const filteredStreams = serverData.streams.filter(s => s.category_id === catId);
   
   if(filteredStreams.length === 0) {
-    container.innerHTML = '<p style="text-align:center; opacity:0.5; margin-top:15px; font-size:11px;">لا توجد قنوات</p>';
+    container.innerHTML = '<p style="text-align:center; opacity:0.5; margin-top:15px; font-size:11px;">لا توجد قنوات في هذا القسم</p>';
     return;
   }
 
@@ -252,10 +249,10 @@ function playStream(streamId) {
     hls = new Hls();
     hls.loadSource(streamUrl);
     hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
     video.src = streamUrl;
-    video.play();
+    video.play().catch(()=>{});
   }
 }
 
