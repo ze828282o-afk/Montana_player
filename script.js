@@ -1,15 +1,21 @@
+// ==================== MONTANA PLAYER - SCRIPT ====================
 let playlists = JSON.parse(localStorage.getItem('montana_playlists')) || [];
 let activePlaylist = playlists.find(p => p.active) || null;
 let serverData = { categories: [], streams: [] };
 let hls = new Hls();
 
-// الساعة الرقمية
+// ===== الساعة بنمط 12 ساعة =====
 function updateClock() {
   const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
+  let hours = now.getHours();
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
-  const timeStr = `${hours}:${minutes}:${seconds}`;
+  
+  // تحويل إلى 12 ساعة
+  const ampm = hours >= 12 ? 'مساءً' : 'صباحاً';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // الساعة 12 بدلاً من 0
+  const timeStr = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
 
   const options = { weekday: 'short', month: 'short', day: 'numeric' };
   const dateStr = now.toLocaleDateString('ar-EG', options);
@@ -22,6 +28,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+// ===== الوظائف الأساسية =====
 function persistPlaylists() {
   localStorage.setItem('montana_playlists', JSON.stringify(playlists));
 }
@@ -43,10 +50,13 @@ function openAddModal() { document.getElementById('addModal').style.display = 'f
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 function updatePlaylistLabel() {
-  document.getElementById('current-playlist-name').innerText =
-    activePlaylist ? activePlaylist.name : 'لا يوجد (اضغط + لإضافة سيرفر)';
+  const label = document.getElementById('current-playlist-name');
+  if (label) {
+    label.innerText = activePlaylist ? activePlaylist.name : 'لا يوجد (اضغط + لإضافة سيرفر)';
+  }
 }
 
+// ===== حفظ وجلب البيانات =====
 function saveAndFetchData() {
   const name = document.getElementById('pName').value.trim();
   let url = document.getElementById('pUrl').value.trim();
@@ -56,7 +66,6 @@ function saveAndFetchData() {
   if (!name || !url || !user || !pass) return alert('الرجاء تعبئة كافة البيانات');
 
   url = normalizeHost(url);
-
   const newPl = { name, url, user, pass, active: true };
   playlists.forEach(p => p.active = false);
   playlists.push(newPl);
@@ -121,6 +130,7 @@ function deletePlaylist(i) {
   updatePlaylistLabel();
 }
 
+// ===== جلب البيانات من السيرفر =====
 function fetchAllData() {
   if(!activePlaylist) return;
   document.getElementById('loadingOverlay').style.display = 'flex';
@@ -136,6 +146,8 @@ function fetchAllData() {
     serverData.categories = categories;
     serverData.streams = streams;
     document.getElementById('loadingOverlay').style.display = 'none';
+    // بعد التحميل نفتح المشغل تلقائياً
+    openPlayerView('live');
   })
   .catch(err => {
     document.getElementById('loadingOverlay').style.display = 'none';
@@ -143,6 +155,7 @@ function fetchAllData() {
   });
 }
 
+// ===== مشغل الفيديو =====
 function openPlayerView(type) {
   if(!activePlaylist) { openPlaylistsModal(); return; }
   if(serverData.categories.length === 0) {
@@ -150,6 +163,8 @@ function openPlayerView(type) {
     return;
   }
   document.getElementById('playerView').style.display = 'flex';
+  // مسح المحتوى القديم
+  document.getElementById('channelsContainer').innerHTML = '<p style="text-align:center; opacity:0.5; margin-top:15px; font-size:11px;">اختر قسماً لعرض القنوات</p>';
   renderCategories();
 }
 
@@ -162,6 +177,10 @@ function closePlayerView() {
 function renderCategories() {
   const container = document.getElementById('categoriesContainer');
   container.innerHTML = '';
+  if (!serverData.categories || serverData.categories.length === 0) {
+    container.innerHTML = '<p style="text-align:center; opacity:0.5; padding:10px; font-size:11px;">لا توجد أقسام</p>';
+    return;
+  }
   serverData.categories.forEach((cat) => {
     const div = document.createElement('div');
     div.className = 'panel-item';
@@ -224,7 +243,10 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ===== بدء التشغيل =====
 if (activePlaylist) {
   updatePlaylistLabel();
   fetchAllData();
+} else {
+  updatePlaylistLabel();
 }
