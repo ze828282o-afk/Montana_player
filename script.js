@@ -1,20 +1,19 @@
-// ==================== MONTANA PLAYER - SCRIPT ====================
+// ==================== MONTANA PLAYER - ZY VIVO PLAYER ====================
 let playlists = JSON.parse(localStorage.getItem('montana_playlists')) || [];
 let activePlaylist = playlists.find(p => p.active) || null;
 let serverData = { categories: [], streams: [] };
 let hls = new Hls();
 
-// ===== الساعة بنمط 12 ساعة =====
+// ===== الساعة بنظام 12 ساعة =====
 function updateClock() {
   const now = new Date();
   let hours = now.getHours();
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
   
-  // تحويل إلى 12 ساعة
   const ampm = hours >= 12 ? 'مساءً' : 'صباحاً';
   hours = hours % 12;
-  hours = hours ? hours : 12; // الساعة 12 بدلاً من 0
+  hours = hours ? hours : 12;
   const timeStr = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
 
   const options = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -28,7 +27,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ===== الوظائف الأساسية =====
+// ===== الأساسيات =====
 function persistPlaylists() {
   localStorage.setItem('montana_playlists', JSON.stringify(playlists));
 }
@@ -56,7 +55,7 @@ function updatePlaylistLabel() {
   }
 }
 
-// ===== حفظ وجلب البيانات =====
+// ===== حفظ وجلب البيانات (نظام Vivo Player) =====
 function saveAndFetchData() {
   const name = document.getElementById('pName').value.trim();
   let url = document.getElementById('pUrl').value.trim();
@@ -130,28 +129,56 @@ function deletePlaylist(i) {
   updatePlaylistLabel();
 }
 
-// ===== جلب البيانات من السيرفر =====
+// ===== جلب البيانات (نظام Vivo Player بالظبط) =====
 function fetchAllData() {
-  if(!activePlaylist) return;
+  if(!activePlaylist) {
+    alert('مفيش سيرفر نشط، اضغط + عشان تضيف واحد');
+    return;
+  }
+  
   document.getElementById('loadingOverlay').style.display = 'flex';
 
-  const catUrl = `${activePlaylist.url}/player_api.php?username=${activePlaylist.user}&password=${activePlaylist.pass}&action=get_live_categories`;
-  const streamUrl = `${activePlaylist.url}/player_api.php?username=${activePlaylist.user}&password=${activePlaylist.pass}&action=get_live_streams`;
+  const baseUrl = activePlaylist.url;
+  const user = activePlaylist.user;
+  const pass = activePlaylist.pass;
 
+  // ===== نفس نظام Vivo Player بالظبط =====
+  const apiBase = `${baseUrl}/player_api.php?username=${user}&password=${pass}`;
+  
+  const endpoints = [
+    `${apiBase}&action=get_live_categories`,
+    `${apiBase}&action=get_live_streams`
+  ];
+
+  // نجيب البيانات
   Promise.all([
-    fetch(catUrl).then(r => r.json()),
-    fetch(streamUrl).then(r => r.json())
+    fetch(endpoints[0]).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    }),
+    fetch(endpoints[1]).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
   ])
   .then(([categories, streams]) => {
+    // التأكد إن في بيانات
+    if (!categories || categories.length === 0) {
+      throw new Error('مفيش بيانات، تأكد من اليوزر والباسورد');
+    }
+    
     serverData.categories = categories;
     serverData.streams = streams;
+    
     document.getElementById('loadingOverlay').style.display = 'none';
-    // بعد التحميل نفتح المشغل تلقائياً
     openPlayerView('live');
+    
+    // رسالة نجاح
+    alert(`✅ تم التحميل!\nأقسام: ${categories.length}\nقنوات: ${streams.length}`);
   })
   .catch(err => {
     document.getElementById('loadingOverlay').style.display = 'none';
-    alert('حدث خطأ أثناء تحميل البيانات من السيرفر');
+    alert(`❌ فشل التحميل: ${err.message}\n\n🔧 الحلول:\n1- تأكد السيرفر شغال\n2- تأكد اليوزر والباسورد\n3- غير http لـ https\n4- جرب سيرفر تاني`);
   });
 }
 
@@ -163,7 +190,6 @@ function openPlayerView(type) {
     return;
   }
   document.getElementById('playerView').style.display = 'flex';
-  // مسح المحتوى القديم
   document.getElementById('channelsContainer').innerHTML = '<p style="text-align:center; opacity:0.5; margin-top:15px; font-size:11px;">اختر قسماً لعرض القنوات</p>';
   renderCategories();
 }
