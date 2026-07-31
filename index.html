@@ -2,104 +2,86 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Montana player</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Montana Player</title>
   <link rel="stylesheet" href="style.css">
+  <!-- مكتبة HLS.js لتشغيل البث المباشر -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- أيقونات FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <div class="brand"><i class="fa-solid fa-tv"></i> Montana player</div>
-    <div class="clock-box">
-      <div class="clock-time" id="clockTime">--:--:--</div>
-      <div class="clock-date" id="clockDate">—</div>
-    </div>
-    <div class="top-actions">
-      <i class="fa-solid fa-plus" onclick="openAddModal()" title="إضافة سيرفر"></i>
-      <i class="fa-solid fa-list-check" onclick="openPlaylistsModal()" title="إدارة القوائم"></i>
-    </div>
-  </div>
-
-  <!-- Dashboard Grid -->
-  <div class="main-grid">
-    <div class="sub-grid">
-      <div class="card" onclick="openPlayerView('live')" tabindex="1"><i class="fa-solid fa-tv"></i><span>Live TV</span></div>
-      <div class="card" onclick="openPlayerView('catchup')" tabindex="2"><i class="fa-solid fa-clock-rotate-left"></i><span>Catch Up</span></div>
-      <div class="row-2">
-        <div class="card" onclick="openPlayerView('fav')" tabindex="3"><i class="fa-solid fa-bookmark"></i><span>Favorites</span></div>
-        <div class="card" onclick="openPlaylistsModal()" tabindex="4"><i class="fa-solid fa-list-check"></i><span>Playlists</span></div>
+  <!-- شاشة تسجيل الدخول -->
+  <div id="login-screen" class="screen">
+    <div class="login-card">
+      <div class="logo"><i class="fa-solid fa-tv"></i> MONTANA PLAYER</div>
+      <h3>تسجيل الدخول - Xtream Codes</h3>
+      <div class="input-group">
+        <i class="fa-solid fa-server"></i>
+        <input type="text" id="server-url" placeholder="رابط السيرفر (http://domain.com:8080)">
       </div>
-    </div>
-    <div class="card" onclick="openPlayerView('movies')" tabindex="5"><i class="fa-solid fa-film"></i><span>Movies</span></div>
-    <div class="card" onclick="openPlayerView('series')" tabindex="6"><i class="fa-solid fa-clapperboard"></i><span>Series</span></div>
-  </div>
-
-  <!-- Bottom Bar -->
-  <div class="bottom-bar">
-    <div class="playlist-info">
-      <p>Current Playlist: <span id="current-playlist-name">لا يوجد (اضغط + لإضافة سيرفر)</span></p>
-    </div>
-    <div class="system-controls">
-      <button class="btn-circle" onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i></button>
-    </div>
-  </div>
-
-  <!-- Full Player View -->
-  <div class="view-screen" id="playerView">
-    <div class="player-header">
-      <h3 id="sectionTitle" style="color: #34d399;">Live TV</h3>
-      <button class="btn-circle" onclick="closePlayerView()"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="player-body">
-      <div class="panel" id="categoriesContainer"></div>
-      <div class="panel" id="channelsContainer">
-        <p style="text-align:center; opacity:0.5; margin-top:15px; font-size:11px;">اختر قسماً لعرض القنوات</p>
+      <div class="input-group">
+        <i class="fa-solid fa-user"></i>
+        <input type="text" id="username" placeholder="اسم المستخدم">
       </div>
-      <div class="video-container" id="videoBox" onclick="toggleFullscreen()">
-        <span class="expand-hint">اضغط للتكبير ⛶</span>
-        <div class="placeholder-text" id="videoPlaceholder">
-          <i class="fa-solid fa-circle-play" style="font-size: 26px;"></i>
-          <span>اختر قناة للتشغيل</span>
+      <div class="input-group">
+        <i class="fa-solid fa-key"></i>
+        <input type="password" id="password" placeholder="كلمة السر">
+      </div>
+      <button id="login-btn"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
+      <p id="error-msg" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- الواجهة الرئيسية -->
+  <div id="app-screen" class="screen hidden">
+    <!-- الشريط العلوي لبيانات الاشتراك -->
+    <header class="top-bar">
+      <div class="brand-title"><i class="fa-solid fa-play"></i> MONTANA</div>
+      <div class="user-badge"><i class="fa-solid fa-user-circle"></i> <span id="info-user">-</span></div>
+      <div class="info-tag">الحالة: <span id="info-status" class="status-active">-</span></div>
+      <div class="info-tag">تاريخ الانتهاء: <span id="info-exp" class="exp-date">-</span></div>
+      <div class="info-tag">الأجهزة: <span id="info-conn">-</span></div>
+      <button id="logout-btn"><i class="fa-solid fa-power-off"></i> خروج</button>
+    </header>
+
+    <div class="main-layout">
+      <!-- الشريط الجانبي -->
+      <aside class="sidebar">
+        <!-- تبويبات: مباشر - أفلام - مسلسلات - مفضلة -->
+        <div class="media-tabs">
+          <button class="tab-btn active" data-type="live"><i class="fa-solid fa-satellite-dish"></i> مباشر</button>
+          <button class="tab-btn" data-type="movie"><i class="fa-solid fa-film"></i> أفلام</button>
+          <button class="tab-btn" data-type="series"><i class="fa-solid fa-tv"></i> مسلسلات</button>
+          <button class="tab-btn" data-type="fav"><i class="fa-solid fa-star"></i> المفضلة</button>
         </div>
-        <video id="mainVideo" controls autoplay style="display:none;"></video>
-      </div>
+
+        <!-- البحث وتصفية الأقسام -->
+        <div class="filter-box">
+          <input type="text" id="search-input" placeholder="بحث عن اسم...">
+          <select id="category-select">
+            <option value="">جميع الأقسام</option>
+          </select>
+        </div>
+
+        <!-- قائمة المحتوى -->
+        <ul id="content-list" class="content-list"></ul>
+      </aside>
+
+      <!-- منطقة المشغل والمعلومات -->
+      <main class="player-section">
+        <div class="video-wrapper">
+          <video id="video-player" controls autoplay></video>
+        </div>
+        <div class="player-footer">
+          <h2 id="current-title">اختر عنصر للبدء</h2>
+          <button id="fav-btn" class="fav-action-btn"><i class="fa-regular fa-star"></i> إضافة للمفضلة</button>
+        </div>
+      </main>
     </div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay">
-    <div class="spinner"></div>
-    <h3 style="color:#34d399; font-size: 14px;">Loading...</h3>
-    <p style="opacity:0.8; margin-top:2px; font-size:11px;">جاري جلب القنوات والمحتوى</p>
-  </div>
-
-  <!-- Modal: إضافة سيرفر -->
-  <div class="modal" id="addModal">
-    <div class="modal-content">
-      <h3 style="margin-bottom:8px; text-align:center; color:#a7f3d0; font-size: 14px;">إضافة سيرفر IPTV</h3>
-      <div class="input-group"><input type="text" id="pName" placeholder="اسم السيرفر"></div>
-      <div class="input-group"><input type="text" id="pUrl" placeholder="Host (http://domain.com:8080)"></div>
-      <div class="input-group"><input type="text" id="pUser" placeholder="Username"></div>
-      <div class="input-group"><input type="password" id="pPass" placeholder="Password"></div>
-      <button class="btn-submit" onclick="saveAndFetchData()">حفظ وجلب البيانات</button>
-      <button class="btn-submit" style="background:transparent; color:#fff; margin-top:2px;" onclick="closeModal('addModal')">إلغاء</button>
-    </div>
-  </div>
-
-  <!-- Modal: اختيار / إدارة السيرفرات -->
-  <div class="modal" id="playlistsModal">
-    <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
-      <h3 style="margin-bottom:8px; text-align:center; color:#a7f3d0; font-size: 14px;">السيرفرات المحفوظة</h3>
-      <div id="playlistsListContainer"></div>
-      <button class="btn-submit" style="margin-top:4px;" onclick="closeModal('playlistsModal'); openAddModal();">+ إضافة سيرفر جديد</button>
-      <button class="btn-submit" style="background:transparent; color:#fff; margin-top:2px;" onclick="closeModal('playlistsModal')">إغلاق</button>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="script.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
