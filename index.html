@@ -9,15 +9,9 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <!-- الشاشة الرئيسية -->
     <div id="app" class="landscape">
-        <!-- رأس التطبيق -->
-        <header>
-            <div class="logo">
-                <span class="gold">Montana</span> <span class="white">Player</span>
-            </div>
-            <div class="version">v3.4.2</div>
-        </header>
+        <!-- عنوان Player -->
+        <div class="player-title">Player</div>
 
         <!-- الوقت والتاريخ -->
         <div class="datetime">
@@ -25,69 +19,71 @@
             <span id="date">Friday, Jul 31, 2026</span>
         </div>
 
-        <!-- أزرار التنقل الرئيسية -->
+        <!-- أزرار التنقل 3x2 -->
         <div class="nav-grid">
-            <button class="nav-btn" data-page="live">📺 Live TV</button>
-            <button class="nav-btn" data-page="catchup">⏪ Catch Up</button>
-            <button class="nav-btn" data-page="favorites">❤️ Favorites</button>
-            <button class="nav-btn" data-page="movies">🎬 Movies</button>
-            <button class="nav-btn" data-page="series">📺 Series</button>
-            <button class="nav-btn" data-page="playlists">📋 Playlists</button>
+            <button class="nav-btn" data-page="live">Live TV</button>
+            <button class="nav-btn" data-page="catchup">Catch Up</button>
+            <button class="nav-btn" data-page="favorites">Favorites</button>
+            <button class="nav-btn" data-page="movies">Movies</button>
+            <button class="nav-btn" data-page="series">Series</button>
+            <button class="nav-btn" data-page="playlists">Playlists</button>
         </div>
 
         <!-- القائمة الحالية -->
         <div class="current-playlist">
-            <span>Current Playlist: <strong id="currentPlaylistName">Ziyad Mira 4</strong></span>
-            <span>Expires: <strong id="expiryDate">2027-06-03</strong></span>
+            <div>Current Playlist: <strong id="currentPlaylistName">Ziyad Mira 4</strong></div>
+            <div>Current playlist expires: <strong id="expiryDate">2027-06-03</strong></div>
         </div>
 
-        <!-- أزرار الإدارة -->
-        <div class="action-buttons">
-            <button id="manageBtn">⚙️ Manage Playlists</button>
-            <button id="addBtn">➕ Add New</button>
-        </div>
+        <!-- الإصدار -->
+        <div class="version">V 3.4.2</div>
     </div>
 
-    <!-- شاشة إضافة قائمة (مخفية) -->
+    <!-- شاشة القنوات -->
+    <div id="channelsScreen" class="screen hidden">
+        <button class="back-btn" onclick="showHome()">← Back</button>
+        <h2 id="channelsTitle">📺 Channels</h2>
+        <div id="channelsList"></div>
+    </div>
+
+    <!-- شاشة إضافة قائمة -->
     <div id="addPlaylistScreen" class="screen hidden">
-        <button class="back-btn" onclick="showHome()">⬅ Back</button>
+        <button class="back-btn" onclick="showHome()">← Back</button>
         <h2>Add Playlist</h2>
         <div class="tabs">
             <button class="tab-btn active" data-tab="m3u">M3U URL</button>
             <button class="tab-btn" data-tab="xtream">Xtream API</button>
         </div>
-        <!-- تبويب M3U -->
         <div id="tabM3U" class="tab-content">
             <input type="url" id="m3uUrl" placeholder="https://example.com/playlist.m3u" />
         </div>
-        <!-- تبويب Xtream -->
         <div id="tabXtream" class="tab-content hidden">
-            <input type="text" id="xtreamUrl" placeholder="URL + PORT (e.g. http://server:8080)" />
+            <input type="text" id="xtreamUrl" placeholder="URL + PORT" />
             <input type="text" id="xtreamUser" placeholder="Username" />
             <input type="password" id="xtreamPass" placeholder="Password" />
         </div>
-        <button id="savePlaylistBtn">💾 Save Playlist</button>
+        <button id="savePlaylistBtn">Save Playlist</button>
         <div class="mac-address">
-            <span>🔗 MAC Address:</span>
+            <span>MAC Address:</span>
             <strong>2b:10:f8:6d:ca:4c</strong>
         </div>
-        <div class="qr-section">
-            <p>📲 Scan QR to add playlist</p>
-            <div id="qrPlaceholder">[ QR Code ]</div>
-        </div>
+        <div id="loadingStatus" style="color:#D4AF37;text-align:center;display:none;">Loading channels...</div>
     </div>
 
     <!-- شاشة القوائم المحفوظة -->
     <div id="playlistsScreen" class="screen hidden">
-        <button class="back-btn" onclick="showHome()">⬅ Back</button>
-        <h2>📋 My Playlists</h2>
+        <button class="back-btn" onclick="showHome()">← Back</button>
+        <h2>Playlists</h2>
         <div id="playlistList"></div>
     </div>
 
-    <!-- مشغل الفيديو (مخفى) -->
+    <!-- مشغل الفيديو -->
     <div id="playerScreen" class="screen hidden">
-        <button class="back-btn" onclick="closePlayer()">⬅ Back</button>
-        <video id="videoPlayer" controls autoplay></video>
+        <button class="back-btn" onclick="closePlayer()">← Back</button>
+        <div id="playerContainer">
+            <video id="videoPlayer" controls autoplay></video>
+            <div id="channelInfo"></div>
+        </div>
     </div>
 
     <script src="script.js"></script>
