@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1A1A1A" />
+    <meta name="theme-color" content="#0a0a0a" />
     <title>Montana Player</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+    <!-- ===== الشاشة الرئيسية ===== -->
     <div id="app" class="landscape">
-        <!-- عنوان Player -->
+        <!-- العنوان -->
         <div class="player-title">Player</div>
 
         <!-- الوقت والتاريخ -->
@@ -36,48 +37,110 @@
         </div>
 
         <!-- الإصدار -->
-        <div class="version">V 3.4.2</div>
+        <div class="version">V 1.0.0</div>
     </div>
 
-    <!-- شاشة القنوات -->
+    <!-- ===== شاشة القنوات ===== -->
     <div id="channelsScreen" class="screen hidden">
         <button class="back-btn" onclick="showHome()">← Back</button>
         <h2 id="channelsTitle">📺 Channels</h2>
         <div id="channelsList"></div>
     </div>
 
-    <!-- شاشة إضافة قائمة -->
+    <!-- ===== شاشة إضافة قائمة ===== -->
     <div id="addPlaylistScreen" class="screen hidden">
-        <button class="back-btn" onclick="showHome()">← Back</button>
+        <button class="back-btn" onclick="showPlaylists()">← Back</button>
         <h2>Add Playlist</h2>
+        
         <div class="tabs">
-            <button class="tab-btn active" data-tab="m3u">M3U URL</button>
-            <button class="tab-btn" data-tab="xtream">Xtream API</button>
+            <button class="tab-btn active" data-tab="m3u">Add M3U URL</button>
+            <button class="tab-btn" data-tab="xtream">Xstream-Codes-API</button>
         </div>
+        
         <div id="tabM3U" class="tab-content">
-            <input type="url" id="m3uUrl" placeholder="https://example.com/playlist.m3u" />
+            <div class="input-group">
+                <label>Playlist Name</label>
+                <input type="text" id="m3uName" placeholder="Enter playlist name" />
+            </div>
+            <div class="input-group">
+                <label>URL + PORT</label>
+                <input type="url" id="m3uUrl" placeholder="https://example.com/playlist.m3u" />
+            </div>
         </div>
+        
         <div id="tabXtream" class="tab-content hidden">
-            <input type="text" id="xtreamUrl" placeholder="URL + PORT" />
-            <input type="text" id="xtreamUser" placeholder="Username" />
-            <input type="password" id="xtreamPass" placeholder="Password" />
+            <div class="input-group">
+                <label>Playlist Name</label>
+                <input type="text" id="xtreamName" placeholder="Enter playlist name" />
+            </div>
+            <div class="input-group">
+                <label>URL + PORT</label>
+                <input type="text" id="xtreamUrl" placeholder="http://server:8080" />
+            </div>
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" id="xtreamUser" placeholder="Enter username" />
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="xtreamPass" placeholder="Enter password" />
+            </div>
         </div>
+        
         <button id="savePlaylistBtn">Save Playlist</button>
+        
+        <div class="qr-section">
+            <p>Scan QR to add playlist.</p>
+            <p style="font-size:0.85rem;color:#666;margin-top:4px;">To add/Manage the playlists, use following values on website:</p>
+        </div>
+        
         <div class="mac-address">
-            <span>MAC Address:</span>
+            <span>Mac Address</span>
             <strong>2b:10:f8:6d:ca:4c</strong>
         </div>
-        <div id="loadingStatus" style="color:#D4AF37;text-align:center;display:none;">Loading channels...</div>
+        
+        <div class="user-pass">
+            <div>
+                <span>User Name</span>
+                <strong id="displayUsername">admin</strong>
+            </div>
+            <div>
+                <span>Password</span>
+                <strong id="displayPassword">••••••••</strong>
+            </div>
+        </div>
+        
+        <div id="loadingStatus" style="color:#D4AF37;text-align:center;display:none;padding:10px;">⏳ Loading channels...</div>
+        
+        <div class="footer-note">
+            <p>Vivo Player is the Best General Media Player.</p>
+            <p>Vivo Player does not support this feature.</p>
+        </div>
     </div>
 
-    <!-- شاشة القوائم المحفوظة -->
+    <!-- ===== شاشة القوائم المحفوظة ===== -->
     <div id="playlistsScreen" class="screen hidden">
         <button class="back-btn" onclick="showHome()">← Back</button>
-        <h2>Playlists</h2>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2>Playlists</h2>
+            <button onclick="showAddPlaylist()" class="add-btn">+ Add Playlist</button>
+        </div>
+        
         <div id="playlistList"></div>
+        
+        <div class="qr-section" style="margin-top:20px;">
+            <p>Scan QR to add playlist.</p>
+            <p style="font-size:0.85rem;color:#666;margin-top:4px;">To add/Manage the playlists, use following values on website:</p>
+        </div>
+        
+        <div class="mac-address" style="margin-top:10px;">
+            <span>Mac Address</span>
+            <strong>2b:10:f8:6d:ca:4c</strong>
+        </div>
     </div>
 
-    <!-- مشغل الفيديو -->
+    <!-- ===== مشغل الفيديو ===== -->
     <div id="playerScreen" class="screen hidden">
         <button class="back-btn" onclick="closePlayer()">← Back</button>
         <div id="playerContainer">

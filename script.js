@@ -10,6 +10,7 @@ function loadPlaylistsFromStorage() {
     if (stored) {
         playlists = JSON.parse(stored);
     } else {
+        // بيانات تجريبية (مثل الموجودة في الصور)
         playlists = [
             { id: 1, name: 'Ziyad Mira 1', url: 'http://apkiptv.online/get...', type: 'm3u' },
             { id: 2, name: 'Ziyad Mira 2', url: 'http://line.mediadisc.cc...', type: 'm3u' },
@@ -35,7 +36,7 @@ function updateClock() {
 setInterval(updateClock, 10000);
 updateClock();
 
-// ===== التنقل =====
+// ===== التنقل بين الشاشات =====
 function showHome() {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('app').classList.remove('hidden');
@@ -91,7 +92,13 @@ function renderChannels(channels) {
     container.innerHTML = '';
     
     if (!channels || channels.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#666;padding:40px;">No channels found</div>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <p>No channels found</p>
+                <button class="empty-btn" onclick="showAddPlaylist()">➕ Add Playlist</button>
+            </div>
+        `;
         return;
     }
     
@@ -103,7 +110,7 @@ function renderChannels(channels) {
                 <div class="channel-name">${ch.name || 'Channel ' + (index+1)}</div>
                 <div class="channel-group">${ch.group || 'General'}</div>
             </div>
-            <button class="play-btn" onclick="playChannel(${index})">▶</button>
+            <button class="play-btn" onclick="playChannel(${index})">▶ Play</button>
         `;
         container.appendChild(div);
     });
@@ -192,7 +199,7 @@ async function loadPlaylist(playlistId) {
         currentChannels = channels;
         document.getElementById('currentPlaylistName').textContent = playlist.name;
         
-        // تاريخ انتهاء (بعد سنة)
+        // تاريخ انتهاء (بعد سنة من اليوم)
         const exp = new Date();
         exp.setFullYear(exp.getFullYear() + 1);
         document.getElementById('expiryDate').textContent = exp.toISOString().split('T')[0];
@@ -224,18 +231,29 @@ function updateCurrentPlaylistDisplay() {
 function renderPlaylistList() {
     const container = document.getElementById('playlistList');
     container.innerHTML = '';
+    
     if (playlists.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#666;padding:20px;">No playlists added</div>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <p>No playlists added</p>
+                <button class="empty-btn" onclick="showAddPlaylist()">➕ Add Your First Playlist</button>
+            </div>
+        `;
         return;
     }
+    
     playlists.forEach(p => {
         const div = document.createElement('div');
         div.className = 'playlist-item';
         div.innerHTML = `
-            <span><strong>${p.name}</strong></span>
             <div>
+                <div class="pl-name">${p.name}</div>
+                <div class="pl-type">${p.type}</div>
+            </div>
+            <div class="pl-actions">
                 <button onclick="loadPlaylist(${p.id})">▶ Load</button>
-                <button onclick="deletePlaylist(${p.id})" style="border-color:#ff4444;color:#ff4444;">✕</button>
+                <button class="delete-btn" onclick="deletePlaylist(${p.id})">✕</button>
             </div>
         `;
         container.appendChild(div);
@@ -255,9 +273,11 @@ function deletePlaylist(id) {
     }
 }
 
-// ===== إضافة قائمة =====
+// ===== إضافة قائمة جديدة =====
 document.getElementById('savePlaylistBtn').addEventListener('click', async function() {
+    const m3uName = document.getElementById('m3uName').value.trim();
     const m3uUrl = document.getElementById('m3uUrl').value.trim();
+    const xtreamName = document.getElementById('xtreamName').value.trim();
     const xtreamUrl = document.getElementById('xtreamUrl').value.trim();
     const xtreamUser = document.getElementById('xtreamUser').value.trim();
     const xtreamPass = document.getElementById('xtreamPass').value.trim();
@@ -265,21 +285,40 @@ document.getElementById('savePlaylistBtn').addEventListener('click', async funct
     let newPlaylist = null;
     let channels = [];
     
-    if (m3uUrl) {
-        newPlaylist = { id: Date.now(), name: `Playlist ${playlists.length+1}`, url: m3uUrl, type: 'm3u' };
+    // التحقق من التبويب النشط
+    const activeTab = document.querySelector('.tab-btn.active');
+    const tabType = activeTab ? activeTab.dataset.tab : 'm3u';
+    
+    if (tabType === 'm3u') {
+        if (!m3uName || !m3uUrl) {
+            alert('⚠️ Please fill in Playlist Name and URL.');
+            return;
+        }
+        newPlaylist = { 
+            id: Date.now(), 
+            name: m3uName, 
+            url: m3uUrl, 
+            type: 'm3u' 
+        };
         document.getElementById('loadingStatus').style.display = 'block';
         channels = await fetchM3U(m3uUrl);
-    } else if (xtreamUrl && xtreamUser && xtreamPass) {
-        newPlaylist = { id: Date.now(), name: `Xtream ${playlists.length+1}`, url: `${xtreamUrl}?user=${xtreamUser}&pass=${xtreamPass}`, type: 'xtream' };
+    } else {
+        if (!xtreamName || !xtreamUrl || !xtreamUser || !xtreamPass) {
+            alert('⚠️ Please fill in all Xtream fields.');
+            return;
+        }
+        newPlaylist = { 
+            id: Date.now(), 
+            name: xtreamName, 
+            url: `${xtreamUrl}?user=${xtreamUser}&pass=${xtreamPass}`, 
+            type: 'xtream' 
+        };
         document.getElementById('loadingStatus').style.display = 'block';
         channels = await fetchXtream(xtreamUrl, xtreamUser, xtreamPass);
-    } else {
-        alert('⚠️ Please fill all fields.');
-        return;
     }
     
     if (channels.length === 0) {
-        alert('⚠️ No channels found.');
+        alert('⚠️ No channels found. Check your URL/credentials.');
         document.getElementById('loadingStatus').style.display = 'none';
         return;
     }
@@ -299,12 +338,15 @@ document.getElementById('savePlaylistBtn').addEventListener('click', async funct
     
     document.getElementById('loadingStatus').style.display = 'none';
     
+    // تنظيف الحقول
+    document.getElementById('m3uName').value = '';
     document.getElementById('m3uUrl').value = '';
+    document.getElementById('xtreamName').value = '';
     document.getElementById('xtreamUrl').value = '';
     document.getElementById('xtreamUser').value = '';
     document.getElementById('xtreamPass').value = '';
     
-    alert(`✅ Loaded ${channels.length} channels!`);
+    alert(`✅ Loaded ${channels.length} channels from "${newPlaylist.name}"!`);
     showChannels(newPlaylist.id);
 });
 
@@ -320,7 +362,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
             if (currentChannels.length > 0) {
                 showChannels(currentPlaylistId);
             } else {
-                alert('📺 Please add a playlist first.');
+                alert('📺 Please add a playlist first.\nClick "Playlists" then "Add Playlist".');
             }
             return;
         }
@@ -333,17 +375,13 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
                 document.getElementById('channelsScreen').classList.remove('hidden');
                 document.getElementById('channelsTitle').textContent = '❤️ Favorites';
             } else {
-                alert('No favorites yet.');
+                alert('No favorites yet.\nPlay a channel and click the heart icon to add.');
             }
             return;
         }
         alert(`📺 ${page} section coming soon`);
     });
 });
-
-// ===== أزرار الإدارة =====
-document.getElementById('manageBtn')?.addEventListener('click', showPlaylists);
-document.getElementById('addBtn')?.addEventListener('click', showAddPlaylist);
 
 // ===== تبويب M3U / Xtream =====
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -366,9 +404,11 @@ if (savedPlaylistId) {
         currentChannels = JSON.parse(savedChannels);
         currentPlaylistId = parseInt(savedPlaylistId);
         updateCurrentPlaylistDisplay();
-        // تحديث تاريخ الانتهاء
         const exp = new Date();
         exp.setFullYear(exp.getFullYear() + 1);
         document.getElementById('expiryDate').textContent = exp.toISOString().split('T')[0];
     }
 }
+
+// ===== عرض MAC Address =====
+// تم عرضه مباشرة في HTML
