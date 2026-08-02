@@ -1,154 +1,519 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0a0a0a" />
-    <title>Montana Player</title>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Velox IPTV Player</title>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- HLS.js & M3U Parser Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/iptv-playlist-parser@0.12.1/dist/iptv-playlist-parser.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #0B0C0E;
+            --bg-card: #15181C;
+            --bg-card-hover: #1E2228;
+            --accent-gold: #FFD700;
+            --accent-green: #00FF66;
+            --accent-orange: #FF5722;
+            --text-primary: #FFFFFF;
+            --text-secondary: #9FA6B2;
+            --border-color: #262B33;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: var(--bg-card);
+            border-bottom: 2px solid var(--accent-gold);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-orange));
+            color: #000;
+            font-weight: 900;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 900;
+            background: linear-gradient(to right, var(--accent-gold), #FFF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .digital-clock-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #000;
+            padding: 6px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .clock-icon { color: var(--accent-gold); font-size: 14px; }
+        .digital-clock { font-family: 'Courier New', Courier, monospace; font-size: 16px; font-weight: bold; color: var(--accent-green); }
+        .clock-period { font-size: 12px; color: var(--accent-gold); font-weight: bold; }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 65px);
+        }
+
+        .player-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #050506;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: contain;
+        }
+
+        .player-info {
+            margin-top: 12px;
+            background-color: var(--bg-card);
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .current-stream-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar {
+            width: 360px;
+            background-color: var(--bg-card);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 14px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            background-color: #0B0C0E;
+            border: 1px solid var(--border-color);
+            color: #FFF;
+            padding: 10px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: var(--accent-gold);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-orange));
+            color: #000;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .btn-secondary {
+            background: #22272F;
+            color: #FFF;
+            border: 1px solid var(--border-color);
+        }
+
+        .channel-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #0E1013;
+            margin-bottom: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .channel-item:hover, .channel-item:active {
+            background-color: var(--bg-card-hover);
+        }
+
+        .channel-item.active {
+            border-color: var(--accent-gold);
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), transparent);
+        }
+
+        .channel-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: #1A1D24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-gold);
+            overflow: hidden;
+        }
+
+        .channel-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #FFF;
+        }
+
+        .channel-group {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .loading-text {
+            text-align: center;
+            padding: 20px;
+            color: var(--accent-gold);
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background-color: var(--bg-card);
+            border: 1px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%; max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (max-width: 850px) {
+            .main-container { flex-direction: column; height: auto; }
+            .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border-color); }
+            .player-area { padding: 10px; }
+        }
+    </style>
 </head>
 <body>
-    <!-- ===== الشاشة الرئيسية ===== -->
-    <div id="app" class="landscape">
-        <!-- العنوان -->
-        <div class="player-title">Player</div>
 
-        <!-- الوقت والتاريخ -->
-        <div class="datetime">
-            <span id="time">03:18 PM</span>
-            <span id="date">Friday, Jul 31, 2026</span>
+    <header>
+        <div class="brand">
+            <div class="brand-logo">V</div>
+            <span class="brand-name">VELOX IPTV</span>
         </div>
 
-        <!-- أزرار التنقل 3x2 -->
-        <div class="nav-grid">
-            <button class="nav-btn" data-page="live">Live TV</button>
-            <button class="nav-btn" data-page="catchup">Catch Up</button>
-            <button class="nav-btn" data-page="favorites">Favorites</button>
-            <button class="nav-btn" data-page="movies">Movies</button>
-            <button class="nav-btn" data-page="series">Series</button>
-            <button class="nav-btn" data-page="playlists">Playlists</button>
+        <div class="digital-clock-container">
+            <i class="fa-solid fa-clock clock-icon"></i>
+            <span id="clock-time" class="digital-clock">12:00:00</span>
+            <span id="clock-period" class="clock-period">AM</span>
         </div>
+    </header>
 
-        <!-- القائمة الحالية -->
-        <div class="current-playlist">
-            <div>Current Playlist: <strong id="currentPlaylistName">Ziyad Mira 4</strong></div>
-            <div>Current playlist expires: <strong id="expiryDate">2027-06-03</strong></div>
-        </div>
+    <div class="main-container">
 
-        <!-- الإصدار -->
-        <div class="version">V 1.0.0</div>
+        <main class="player-area">
+            <div class="video-wrapper">
+                <video id="video-player" controls playsinline poster="https://via.placeholder.com/1280x720/0F1115/FFD700?text=VELOX+IPTV"></video>
+            </div>
+
+            <div class="player-info">
+                <div class="current-stream-title" id="current-title">
+                    <i class="fa-solid fa-satellite-dish"></i> اختر قناة لبدء البث
+                </div>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="btn" style="width: 100%;" id="open-xtream-modal">
+                    <i class="fa-solid fa-server"></i> تسجيل دخول Xtream Codes
+                </button>
+                <div class="input-group">
+                    <input type="text" id="stream-url-input" placeholder="رابط قائمة M3U أو بث مباشر...">
+                    <button class="btn btn-secondary" id="load-m3u-btn" title="تحميل القائمة أو التشغيل">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="channel-list" id="channel-list"></div>
+        </aside>
+
     </div>
 
-    <!-- ===== شاشة القنوات ===== -->
-    <div id="channelsScreen" class="screen hidden">
-        <button class="back-btn" onclick="showHome()">← Back</button>
-        <h2 id="channelsTitle">📺 Channels</h2>
-        <div id="channelsList"></div>
-    </div>
-
-    <!-- ===== شاشة إضافة قائمة ===== -->
-    <div id="addPlaylistScreen" class="screen hidden">
-        <button class="back-btn" onclick="showPlaylists()">← Back</button>
-        <h2>Add Playlist</h2>
-        
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="m3u">Add M3U URL</button>
-            <button class="tab-btn" data-tab="xtream">Xstream-Codes-API</button>
-        </div>
-        
-        <div id="tabM3U" class="tab-content">
-            <div class="input-group">
-                <label>Playlist Name</label>
-                <input type="text" id="m3uName" placeholder="Enter playlist name" />
+    <!-- Xtream Modal -->
+    <div class="modal" id="xtream-modal">
+        <div class="modal-content">
+            <h3 style="color:var(--accent-gold);"><i class="fa-solid fa-server"></i> حساب Xtream Codes</h3>
+            <input type="text" id="xtream-host" placeholder="رابط السيرفر (مثال: http://domain.com:8080)">
+            <input type="text" id="xtream-user" placeholder="اسم المستخدم (Username)">
+            <input type="password" id="xtream-pass" placeholder="كلمة السر (Password)">
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <button class="btn" id="xtream-login-btn" style="flex:1;">جلب القنوات</button>
+                <button class="btn btn-secondary" id="close-modal-btn">إلغاء</button>
             </div>
-            <div class="input-group">
-                <label>URL + PORT</label>
-                <input type="url" id="m3uUrl" placeholder="https://example.com/playlist.m3u" />
-            </div>
-        </div>
-        
-        <div id="tabXtream" class="tab-content hidden">
-            <div class="input-group">
-                <label>Playlist Name</label>
-                <input type="text" id="xtreamName" placeholder="Enter playlist name" />
-            </div>
-            <div class="input-group">
-                <label>URL + PORT</label>
-                <input type="text" id="xtreamUrl" placeholder="http://server:8080" />
-            </div>
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" id="xtreamUser" placeholder="Enter username" />
-            </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="xtreamPass" placeholder="Enter password" />
-            </div>
-        </div>
-        
-        <button id="savePlaylistBtn">Save Playlist</button>
-        
-        <div class="qr-section">
-            <p>Scan QR to add playlist.</p>
-            <p style="font-size:0.85rem;color:#666;margin-top:4px;">To add/Manage the playlists, use following values on website:</p>
-        </div>
-        
-        <div class="mac-address">
-            <span>Mac Address</span>
-            <strong>2b:10:f8:6d:ca:4c</strong>
-        </div>
-        
-        <div class="user-pass">
-            <div>
-                <span>User Name</span>
-                <strong id="displayUsername">admin</strong>
-            </div>
-            <div>
-                <span>Password</span>
-                <strong id="displayPassword">••••••••</strong>
-            </div>
-        </div>
-        
-        <div id="loadingStatus" style="color:#D4AF37;text-align:center;display:none;padding:10px;">⏳ Loading channels...</div>
-        
-        <div class="footer-note">
-            <p>Vivo Player is the Best General Media Player.</p>
-            <p>Vivo Player does not support this feature.</p>
         </div>
     </div>
 
-    <!-- ===== شاشة القوائم المحفوظة ===== -->
-    <div id="playlistsScreen" class="screen hidden">
-        <button class="back-btn" onclick="showHome()">← Back</button>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2>Playlists</h2>
-            <button onclick="showAddPlaylist()" class="add-btn">+ Add Playlist</button>
-        </div>
-        
-        <div id="playlistList"></div>
-        
-        <div class="qr-section" style="margin-top:20px;">
-            <p>Scan QR to add playlist.</p>
-            <p style="font-size:0.85rem;color:#666;margin-top:4px;">To add/Manage the playlists, use following values on website:</p>
-        </div>
-        
-        <div class="mac-address" style="margin-top:10px;">
-            <span>Mac Address</span>
-            <strong>2b:10:f8:6d:ca:4c</strong>
-        </div>
-    </div>
+    <script>
+        // 1. Digital Clock
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const period = hours >= 12 ? 'PM' : 'AM';
 
-    <!-- ===== مشغل الفيديو ===== -->
-    <div id="playerScreen" class="screen hidden">
-        <button class="back-btn" onclick="closePlayer()">← Back</button>
-        <div id="playerContainer">
-            <video id="videoPlayer" controls autoplay></video>
-            <div id="channelInfo"></div>
-        </div>
-    </div>
+            hours = hours % 12 || 12;
+            const hoursStr = String(hours).padStart(2, '0');
 
-    <script src="script.js"></script>
+            document.getElementById('clock-time').textContent = hoursStr + ':' + minutes + ':' + seconds;
+            document.getElementById('clock-period').textContent = period;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 2. Video Player Logic
+        const video = document.getElementById('video-player');
+        const streamInput = document.getElementById('stream-url-input');
+        const loadM3uBtn = document.getElementById('load-m3u-btn');
+        const currentTitle = document.getElementById('current-title');
+        const channelListContainer = document.getElementById('channel-list');
+        let hlsPlayer = null;
+
+        function playStream(url, title) {
+            if(!title) title = 'بث مباشر';
+            currentTitle.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> ' + title;
+
+            if (Hls.isSupported()) {
+                if (hlsPlayer) hlsPlayer.destroy();
+                hlsPlayer = new Hls({ enableWorker: true, lowLatencyMode: true });
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play().catch(function(e){ console.log(e); });
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play().catch(function(e){ console.log(e); });
+            } else {
+                alert('متصفحك لا يدعم تشغيل هذا الرابط.');
+            }
+        }
+
+        // 3. Render Channels
+        function renderChannels(channels) {
+            channelListContainer.innerHTML = '';
+            if(!channels || channels.length === 0) {
+                channelListContainer.innerHTML = '<div class="loading-text">لم يتم العثور على قنوات!</div>';
+                return;
+            }
+
+            channels.forEach(function(ch, index) {
+                const item = document.createElement('div');
+                item.className = 'channel-item ' + (index === 0 ? 'active' : '');
+                
+                const iconHtml = ch.logo ? '<img src="' + ch.logo + '" width="28" height="28" style="border-radius:4px; object-fit:contain;" onerror="this.outerHTML=\'<i class=\\\'fa-solid fa-play\\\'></i>\'">' : '<i class="fa-solid fa-play"></i>';
+
+                item.innerHTML = `
+                    <div class="channel-icon">${iconHtml}</div>
+                    <div style="overflow:hidden;">
+                        <div class="channel-title" style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${ch.name}</div>
+                        <div class="channel-group">${ch.group || 'عام'}</div>
+                    </div>
+                `;
+
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.channel-item').forEach(function(i){ i.classList.remove('active'); });
+                    item.classList.add('active');
+                    playStream(ch.url, ch.name);
+                });
+
+                channelListContainer.appendChild(item);
+            });
+        }
+
+        // Demo Channels Initial Load
+        const sampleChannels = [
+            { name: "Big Buck Bunny Test", group: "تجريبي", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+            { name: "Akamai Live Stream", group: "بث مباشر", url: "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8" },
+            { name: "Sintel Movie Trailer", group: "أفلام", url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8" }
+        ];
+        renderChannels(sampleChannels);
+
+        // 4. M3U Link Parser Engine
+        loadM3uBtn.addEventListener('click', async function() {
+            const inputVal = streamInput.value.trim();
+            if (!inputVal) return alert('برجاء إدخال رابط M3U أو رابط قناة direct!');
+
+            if (inputVal.endsWith('.m3u8')) {
+                playStream(inputVal, 'قناة مخصصة');
+                return;
+            }
+
+            channelListContainer.innerHTML = '<div class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> جاري تنزيل وتحليل ملف M3U...</div>';
+
+            try {
+                const response = await fetch(inputVal);
+                if (!response.ok) throw new Error('فشل جلب الملف');
+                const m3uText = await response.text();
+                
+                const parsed = iptvPlaylistParser.parse(m3uText);
+                const channels = parsed.items.map(function(item) {
+                    return {
+                        name: item.name || 'قناة بدون اسم',
+                        url: item.url,
+                        group: item.group.title || 'قنوات',
+                        logo: item.tvg.logo
+                    };
+                });
+
+                renderChannels(channels);
+                if (channels.length > 0) playStream(channels[0].url, channels[0].name);
+            } catch (err) {
+                alert('عذراً، تعذر تحميل الرابط (تأكد من الرابط أو قد يكون هناك حظر CORS من السيرفر).');
+                renderChannels(sampleChannels);
+            }
+        });
+
+        // 5. Real Xtream Codes Integration
+        const modal = document.getElementById('xtream-modal');
+        const openModalBtn = document.getElementById('open-xtream-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const xtreamLoginBtn = document.getElementById('xtream-login-btn');
+
+        openModalBtn.addEventListener('click', function() { modal.style.display = 'flex'; });
+        closeModalBtn.addEventListener('click', function() { modal.style.display = 'none'; });
+
+        xtreamLoginBtn.addEventListener('click', async function() {
+            let host = document.getElementById('xtream-host').value.trim();
+            const user = document.getElementById('xtream-user').value.trim();
+            const pass = document.getElementById('xtream-pass').value.trim();
+
+            if (!host || !user || !pass) return alert('يرجى ملء كافة الحقول!');
+            if (host.endsWith('/')) host = host.slice(0, -1);
+
+            modal.style.display = 'none';
+            channelListContainer.innerHTML = '<div class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> جاري جلب قنوات Xtream...</div>';
+
+            try {
+                const apiUrl = host + '/player_api.php?username=' + user + '&password=' + pass + '&action=get_live_streams';
+                const res = await fetch(apiUrl);
+                const data = await res.json();
+
+                if (Array.isArray(data) && data.length > 0) {
+                    const xtreamChannels = data.map(function(ch) {
+                        return {
+                            name: ch.name,
+                            url: host + '/live/' + user + '/' + pass + '/' + ch.stream_id + '.m3u8',
+                            group: ch.category_name || 'Xtream Live',
+                            logo: ch.stream_icon
+                        };
+                    });
+
+                    renderChannels(xtreamChannels);
+                    playStream(xtreamChannels[0].url, xtreamChannels[0].name);
+                } else {
+                    alert('بيانات الحساب غير صحيحة أو السيرفر لا يحتوي على قنوات!');
+                    renderChannels(sampleChannels);
+                }
+            } catch (err) {
+                alert('فشل الاتصال بالسيرفر! تأكد من كتابة الرابط مع البورت (مثال: http://domain.com:8080)');
+                renderChannels(sampleChannels);
+            }
+        });
+    </script>
 </body>
 </html>
